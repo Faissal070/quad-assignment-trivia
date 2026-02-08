@@ -1,9 +1,9 @@
-﻿using Trivia.Api.Models.Responses;
+﻿using Trivia.Api.Common.Results;
+using Trivia.Api.Models.Dtos;
 
-namespace Trivia.Api.Services
+namespace Trivia.Api.Services;
+
+public interface ITriviaService
 {
-    public interface ITriviaService
-    {
-        public Task<TriviaQuestionsResult> GetQuestionsAsync(int amount);
-    }
+    Task<Result<IReadOnlyList<QuestionDto>>> GetQuestionsAsync(int amount);
 }

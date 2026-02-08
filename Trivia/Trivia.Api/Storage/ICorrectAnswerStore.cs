@@ -1,8 +1,7 @@
-﻿namespace Trivia.Api.Storage
+﻿namespace Trivia.Api.Storage;
+
+public interface ICorrectAnswerStore
 {
-    public interface ICorrectAnswerStore
-    {
-        public void AddCorrectAnswer(Guid questionId, string correctAnswer);
-        public string? GetCorrectAnswer(Guid questionId);   
-    }
+    void AddCorrectAnswer(Guid questionId, string correctAnswer);
+    string? GetCorrectAnswer(Guid questionId);   
 }

@@ -1,92 +1,124 @@
-﻿using Microsoft.Extensions.Options;
-using System.Net;
-using System.Text.Json;
-using Trivia.Api.Configuration;
-using Trivia.Api.Enums;
+﻿using Trivia.Api.Client;
+using Trivia.Api.Common.Enums;
+using Trivia.Api.Common.Mapper;
+using Trivia.Api.Common.Results;
 using Trivia.Api.Models.Dtos;
 using Trivia.Api.Models.External;
-using Trivia.Api.Models.Responses;
 using Trivia.Api.Storage;
 
-namespace Trivia.Api.Services
+namespace Trivia.Api.Services;
+
+public class TriviaService : ITriviaService
 {
-    public class TriviaService : ITriviaService
+    private readonly ICorrectAnswerStore _correctAnswerStore;
+    private readonly ITokenService _tokenService;
+    private readonly ITriviaApiClient _triviaApiClient;
+
+    private const int MaxTokenRetryAttempts = 2;
+
+    public TriviaService(ICorrectAnswerStore correctAnswerStore, ITokenService tokenService,
+        ITriviaApiClient triviaApiClient)
     {
-        private readonly TriviaApiSettings _triviaApiSettings;
-        private readonly ICorrectAnswerStore _correctAnswerStore;
-        private readonly HttpClient _httpClient;
+        _correctAnswerStore = correctAnswerStore;
+        _triviaApiClient = triviaApiClient;
+        _tokenService = tokenService;   
+    }
 
-        private static readonly JsonSerializerOptions _jsonOptions = new()
+    public async Task<Result<IReadOnlyList<QuestionDto>>> GetQuestionsAsync(int amount)
+    {
+        try
         {
-            PropertyNameCaseInsensitive = true
+            var questions = await FetchQuestionsWithTokenAsync(amount);
+            var responseMessage = TriviaResponseMessageMapper.ToPublicMessage(questions.ResponseCode);
+
+            if (questions.ResponseCode != (int)TriviaApiResponseCodeEnum.Success 
+                && questions.ResponseCode != (int)TriviaApiResponseCodeEnum.NoResults )
+            {
+                return Result<IReadOnlyList<QuestionDto>>.Failure(responseMessage); 
+            }
+
+            var mappedAndStoredQuestions = questions.Results.Count == 0
+                ? new List<QuestionDto>()
+                : MapAndStoreQuestions(questions.Results);
+
+            return Result<IReadOnlyList<QuestionDto>>
+                .Success(mappedAndStoredQuestions, responseMessage); 
+        }
+        catch (HttpRequestException ex)
+        {
+            return Result<IReadOnlyList<QuestionDto>>.Failure($"Network error occurred: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result<IReadOnlyList<QuestionDto>>.Failure($"Error fetching questions: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return Result<IReadOnlyList<QuestionDto>>.Failure($"An unexpected error occurred: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Fetches trivia questions using a valid session token and retries once
+    /// if the token is reported invalid by the Trivia API.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private async Task<TriviaApiQuestionResponse> FetchQuestionsWithTokenAsync(int amount)
+    {
+        for(int i = 0; i < MaxTokenRetryAttempts; i++)
+        {
+            var token = await _tokenService.GetTokenAsync();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                continue;
+            }
+
+            var questions = await _triviaApiClient.FetchQuestionsAsync(amount, token);
+             
+            if (questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenNotFound
+                || questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenEmpty)
+            {
+                await _tokenService.HandleTokenErrorAsync(token, questions.ResponseCode);
+                continue; 
+            }
+
+            return questions;
+        }
+
+        throw new InvalidOperationException("Failed to fetch questions after multiple attempts due to token issues.");
+    }
+
+    private IReadOnlyList<QuestionDto> MapAndStoreQuestions(List<TriviaApiQuestion> apiQuestions)
+    {
+        var filteredQuestions = new List<QuestionDto>();
+
+        foreach (var apiQuestion in apiQuestions)
+        {
+            var allAnswers = apiQuestion.IncorrectAnswers
+                .Append(apiQuestion.CorrectAnswer)
+                .ToList();
+
+            var triviaQuestionDto = CreateTriviaQuestionsDto(apiQuestion, allAnswers);
+
+            filteredQuestions.Add(triviaQuestionDto);
+            _correctAnswerStore.AddCorrectAnswer(triviaQuestionDto.Id, apiQuestion.CorrectAnswer);
+        }   
+
+        return filteredQuestions;
+    }
+
+    private static QuestionDto CreateTriviaQuestionsDto(TriviaApiQuestion trivialItem, List<string> allChoices)
+    {
+        allChoices.Shuffle();
+        return new QuestionDto
+        {
+            Id = Guid.NewGuid(),
+            Category = trivialItem.Category,
+            Type = trivialItem.Type,
+            Difficulty = trivialItem.Difficulty,
+            Question = trivialItem.Question,
+            Choices = allChoices
         };
-
-        private const string ApiError = "Trivia API error";
-
-        public TriviaService(IOptions<TriviaApiSettings> triviaApiSettings, ICorrectAnswerStore correctAnswerStore ,HttpClient httpClient)
-        {
-            _triviaApiSettings = triviaApiSettings.Value;
-            _correctAnswerStore = correctAnswerStore;
-            _httpClient = httpClient;
-        }
-
-        public async Task<TriviaQuestionsResult> GetQuestionsAsync(int amount)
-        {
-            var response = await _httpClient.GetAsync($"{_triviaApiSettings.BaseUrl}/api.php?amount={amount}");
-            
-            if(!response.IsSuccessStatusCode)
-            {
-                return new TriviaQuestionsResult
-                {
-                    StatusCode = response.StatusCode,
-                    ErrorMessage = $"{ApiError}: {(int)response.StatusCode} {response.ReasonPhrase}"
-                };
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<TriviaApiResponse>(json, _jsonOptions);
-
-            if (result.Results == null)
-            {
-                return new TriviaQuestionsResult
-                {
-                    ResponseCodeDescription = (TriviaApiResponseCodeEnum)result.ResponseCode,
-                    StatusCode = HttpStatusCode.BadGateway,
-                    ErrorMessage = "Invalid response from Trivia API"
-                };
-            }
-
-            var questions = MapQuestions(result!.Results);
-
-            return new TriviaQuestionsResult
-            {
-                ResponseCodeDescription = (TriviaApiResponseCodeEnum)result.ResponseCode,
-                Questions = questions
-            };
-        }
-
-        private IEnumerable<TriviaQuestionsDto> MapQuestions(List<TriviaApiItem> triviaItems)
-        {
-            var filteredQuestions = new List<TriviaQuestionsDto>();
-
-            foreach (var question in triviaItems)
-            {
-                var id = Guid.NewGuid();
-                
-                var questionDto = new TriviaQuestionsDto
-                {
-                    Type = question.Type,
-                    Difficulty = question.Difficulty,
-                    Category = question.Category,
-                    Question = WebUtility.HtmlDecode(question.Question),
-                    Incorrect_Answers = question.IncorrectAnswers.ToList()
-                };
-
-                filteredQuestions.Add(questionDto);
-                _correctAnswerStore.AddCorrectAnswer(id, question.CorrectAnswer);
-            }   
-
-            return filteredQuestions;
-        }
     }
 }

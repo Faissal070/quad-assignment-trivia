@@ -1,29 +1,35 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Trivia.Api.Services;
 
-namespace Trivia.Api.Controllers
+namespace Trivia.Api.Controllers;
+
+public class TriviaController : ControllerBase
 {
-    public class TriviaController : ControllerBase
+    private readonly ITriviaService _triviaService;
+
+    private const int MinAmount = 1;
+    private const int MaxAmount = 50;
+
+    public TriviaController(ITriviaService triviaService)
     {
-        private readonly ITriviaService _triviaService;
+        _triviaService = triviaService;
+    }
 
-        public TriviaController(ITriviaService triviaService)
+    [HttpGet]
+    [Route("questions")]
+    public async Task<IActionResult> GetQuestions([FromQuery] int amount)
+    {
+        if(amount < MinAmount || amount > MaxAmount)
         {
-            _triviaService = triviaService;
+            return BadRequest("Amount must be greater than zero and smaller than 50");
         }
 
-        [HttpGet]
-        [Route("questions")]
-        public async Task<IActionResult> GetQuestions([FromQuery] int amount)
+        var getQuestions = await _triviaService.GetQuestionsAsync(amount);
+        if (!getQuestions.IsSuccess)
         {
-            if(amount <= 0 || amount > 50)
-            {
-                return BadRequest("Amount must be greater than zero and smaller than 50");
-            }
-
-            var getQuestions = await _triviaService.GetQuestionsAsync(amount);
-
-            return Ok(getQuestions);
+            return StatusCode(StatusCodes.Status500InternalServerError, getQuestions);
         }
+
+        return Ok(getQuestions);
     }
 }

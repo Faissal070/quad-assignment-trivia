@@ -1,8 +1,9 @@
-﻿namespace Trivia.Api.Models.External
+﻿using System.Text.Json.Serialization;
+
+namespace Trivia.Api.Models.External;
+
+public abstract class TriviaApiResponse
 {
-    public class TriviaApiResponse
-    {
-        public int ResponseCode { get; set; }
-        public List<TriviaApiItem> Results { get; set; } = [];
-    }
+    [JsonPropertyName("response_code")]
+    public int ResponseCode { get; set; }
 }

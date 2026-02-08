@@ -1,7 +1,6 @@
-﻿namespace Trivia.Api.Configuration
+﻿namespace Trivia.Api.Configuration;
+
+public class TriviaApiSettings
 {
-    public class TriviaApiSettings
-    {
-        public string BaseUrl { get; set; } = string.Empty;
-    }
+    public string BaseUrl { get; set; } = string.Empty;
 }
