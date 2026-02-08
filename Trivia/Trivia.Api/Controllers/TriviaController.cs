@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using Trivia.Api.Models.Queries;
 using Trivia.Api.Services;
 
 namespace Trivia.Api.Controllers;
@@ -7,9 +9,6 @@ public class TriviaController : ControllerBase
 {
     private readonly ITriviaService _triviaService;
 
-    private const int MinAmount = 1;
-    private const int MaxAmount = 50;
-
     public TriviaController(ITriviaService triviaService)
     {
         _triviaService = triviaService;
@@ -17,14 +16,10 @@ public class TriviaController : ControllerBase
 
     [HttpGet]
     [Route("questions")]
-    public async Task<IActionResult> GetQuestions([FromQuery] int amount)
+    public async Task<IActionResult> GetQuestions([FromQuery] GetQuestionsQuery query, [Required] string sessionId)
     {
-        if(amount < MinAmount || amount > MaxAmount)
-        {
-            return BadRequest("Amount must be greater than zero and smaller than 50");
-        }
+        var getQuestions = await _triviaService.GetQuestionsAsync(query, sessionId);
 
-        var getQuestions = await _triviaService.GetQuestionsAsync(amount);
         if (!getQuestions.IsSuccess)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, getQuestions);

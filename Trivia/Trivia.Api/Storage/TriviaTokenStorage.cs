@@ -2,20 +2,25 @@
 
 public class TriviaTokenStorage : ITriviaTokenStorage
 {
-    private string? _token;
+    private readonly Dictionary<string, string> _sessionTokens = new();
 
-    public string? GetToken()
+    public string? GetToken(string sessionId)
     {
-       return _token;
+        if (_sessionTokens.TryGetValue(sessionId, out var token))
+        {
+            return token;
+        }
+
+        return null;
     }
 
-    public void SetToken(string token)
+    public void SaveToken(string sessonId, string token)
     {
-        _token = token;
+        _sessionTokens[sessonId] = token;
     }
 
-    public void RemoveToken()
+    public void ClearToken(string sessionId)
     {
-        _token = null; 
+        _sessionTokens.Remove(sessionId);
     }
 }

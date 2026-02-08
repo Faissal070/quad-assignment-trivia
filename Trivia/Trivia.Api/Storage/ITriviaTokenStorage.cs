@@ -2,7 +2,7 @@
 
 public interface ITriviaTokenStorage
 {
-    string? GetToken();
-    void SetToken(string token);
-    void RemoveToken();
+    string? GetToken(string sessionId);
+    void SaveToken(string sessonId, string token);
+    void ClearToken(string sessionId);
 }

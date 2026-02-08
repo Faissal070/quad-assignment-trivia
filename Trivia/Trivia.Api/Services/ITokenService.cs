@@ -2,6 +2,6 @@
 
 public interface ITokenService 
 {
-    Task<string?> GetTokenAsync();
-    Task HandleTokenErrorAsync(string token, int responseCode);
+    Task<string?> GetTokenAsync(string sessionId);
+    Task HandleTokenResponseAsync(string sessionId, string token, int responseCode);
 }

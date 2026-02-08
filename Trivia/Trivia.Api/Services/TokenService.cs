@@ -15,9 +15,9 @@ public class TokenService : ITokenService
         _triviaApiClient = triviaApiClient;
     }
 
-    public async Task<string?> GetTokenAsync()
+    public async Task<string?> GetTokenAsync(string sessionId)
     {
-        var token = _tokenStorage.GetToken();
+        var token = _tokenStorage.GetToken(sessionId);
 
         if (!string.IsNullOrWhiteSpace(token))
         {
@@ -32,20 +32,20 @@ public class TokenService : ITokenService
             return null;
         }   
 
-        _tokenStorage.SetToken(tokenResponse.Token);
+        _tokenStorage.SaveToken(sessionId, tokenResponse.Token);
         return tokenResponse.Token;
     }
 
-    public async Task HandleTokenErrorAsync(string token, int responseCode)
+    public async Task HandleTokenResponseAsync(string sessionId, string token, int responseCode)
     {
         switch (responseCode)
         {
             case (int)TriviaApiResponseCodeEnum.TokenNotFound:
-                _tokenStorage.RemoveToken();
+                _tokenStorage.ClearToken(sessionId);
                 break;
 
             case (int)TriviaApiResponseCodeEnum.TokenEmpty:
-                await ResetTokenAsync(token);
+                await ResetTokenAsync(sessionId, token);
                 break;
 
             default:
@@ -53,7 +53,7 @@ public class TokenService : ITokenService
         }
     }
 
-    private async Task ResetTokenAsync(string token)
+    private async Task ResetTokenAsync(string sessionId, string token)
     {
         var resetResponseCode = await _triviaApiClient.ResetTokenAsync(token);
 
@@ -62,6 +62,6 @@ public class TokenService : ITokenService
             return;
         }
 
-        _tokenStorage.RemoveToken();
+        _tokenStorage.ClearToken(sessionId);
     }
 }

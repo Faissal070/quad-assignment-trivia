@@ -18,8 +18,8 @@ public class DependencyInjectionConfiguration
         services.AddScoped<ITriviaService, TriviaService>();
         services.AddScoped<ITokenService, TokenService>();
 
-        //Singleton services    
-        services.AddSingleton<ICorrectAnswerStore, CorrectAnswerStore>();
-        services.AddSingleton<ITriviaTokenStorage, TriviaTokenStorage>();
+        //In-memory storage services
+        services.AddScoped<ICorrectAnswerStore, CorrectAnswerStore>();
+        services.AddScoped<ITriviaTokenStorage, TriviaTokenStorage>();
     }
 }

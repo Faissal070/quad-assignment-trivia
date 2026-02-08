@@ -4,6 +4,7 @@ using Trivia.Api.Common.Mapper;
 using Trivia.Api.Common.Results;
 using Trivia.Api.Models.Dtos;
 using Trivia.Api.Models.External;
+using Trivia.Api.Models.Queries;
 using Trivia.Api.Storage;
 
 namespace Trivia.Api.Services;
@@ -13,22 +14,24 @@ public class TriviaService : ITriviaService
     private readonly ICorrectAnswerStore _correctAnswerStore;
     private readonly ITokenService _tokenService;
     private readonly ITriviaApiClient _triviaApiClient;
+    private readonly ILogger _logger;   
 
     private const int MaxTokenRetryAttempts = 2;
 
     public TriviaService(ICorrectAnswerStore correctAnswerStore, ITokenService tokenService,
-        ITriviaApiClient triviaApiClient)
+        ITriviaApiClient triviaApiClient, ILogger logger)
     {
         _correctAnswerStore = correctAnswerStore;
         _triviaApiClient = triviaApiClient;
         _tokenService = tokenService;   
+        _logger = logger;
     }
 
-    public async Task<Result<IReadOnlyList<QuestionDto>>> GetQuestionsAsync(int amount)
+    public async Task<Result<IReadOnlyList<QuestionDto>>> GetQuestionsAsync(GetQuestionsQuery query, string sessionId)
     {
         try
         {
-            var questions = await FetchQuestionsWithTokenAsync(amount);
+            var questions = await FetchQuestionsWithTokenAsync(query, sessionId);
             var responseMessage = TriviaResponseMessageMapper.ToPublicMessage(questions.ResponseCode);
 
             if (questions.ResponseCode != (int)TriviaApiResponseCodeEnum.Success 
@@ -46,15 +49,24 @@ public class TriviaService : ITriviaService
         }
         catch (HttpRequestException ex)
         {
-            return Result<IReadOnlyList<QuestionDto>>.Failure($"Network error occurred: {ex.Message}");
+            _logger.LogWarning(ex, "Network error while fetching trivia questions");
+
+            return Result<IReadOnlyList<QuestionDto>>.Failure(
+                "Trivia service temporarily unavailable.");
         }
         catch (InvalidOperationException ex)
         {
-            return Result<IReadOnlyList<QuestionDto>>.Failure($"Error fetching questions: {ex.Message}");
+            _logger.LogError(ex, "Invalid operation while fetching trivia questions");
+
+            return Result<IReadOnlyList<QuestionDto>>.Failure(
+                "The trivia service returned an unexpected response.");
         }
         catch (Exception ex)
         {
-            return Result<IReadOnlyList<QuestionDto>>.Failure($"An unexpected error occurred: {ex.Message}");
+            _logger.LogCritical(ex, "Unexpected error while fetching trivia questions");
+
+            return Result<IReadOnlyList<QuestionDto>>.Failure(
+                "An unexpected error occurred.");
         }
     }
 
@@ -64,24 +76,28 @@ public class TriviaService : ITriviaService
     /// </summary>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
-    private async Task<TriviaApiQuestionResponse> FetchQuestionsWithTokenAsync(int amount)
+    private async Task<TriviaApiQuestionResponse> FetchQuestionsWithTokenAsync(GetQuestionsQuery query, string sessionId)
     {
         for(int i = 0; i < MaxTokenRetryAttempts; i++)
         {
-            var token = await _tokenService.GetTokenAsync();
+            var token = await _tokenService.GetTokenAsync(sessionId);
+
             if (string.IsNullOrWhiteSpace(token))
             {
-                continue;
+                throw new InvalidOperationException("Unable to retrieve Trivia API token."); 
             }
 
-            var questions = await _triviaApiClient.FetchQuestionsAsync(amount, token);
+            var questions = await _triviaApiClient.FetchQuestionsAsync(query, token);
              
             if (questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenNotFound
                 || questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenEmpty)
             {
-                await _tokenService.HandleTokenErrorAsync(token, questions.ResponseCode);
+                await _tokenService.HandleTokenResponseAsync(sessionId, token, questions.ResponseCode);
                 continue; 
             }
+
+            _logger.LogInformation("Successfully fetched trivia questions on attempt {Attempt}. " +
+                "Response code: {ResponseCode}", i + 1, questions.ResponseCode);
 
             return questions;
         }
