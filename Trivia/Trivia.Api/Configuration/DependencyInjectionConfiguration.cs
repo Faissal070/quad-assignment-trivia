@@ -10,16 +10,16 @@ public class DependencyInjectionConfiguration
     {
         services.Configure<TriviaApiSettings>(configuration.GetSection("TriviaApi"));
 
-
         //HttpClient
         services.AddHttpClient<ITriviaApiClient, TriviaApiClient>();
 
         //Scoped services
-        services.AddScoped<ITriviaService, TriviaService>();
+        services.AddScoped<ITriviaQuestionService, TriviaQuestionService>();
+        services.AddScoped<ITriviaAnswerService, TriviaAnswerService>();
         services.AddScoped<ITokenService, TokenService>();
 
         //In-memory storage services
-        services.AddScoped<ICorrectAnswerStore, CorrectAnswerStore>();
-        services.AddScoped<ITriviaTokenStorage, TriviaTokenStorage>();
+        services.AddSingleton<ICorrectAnswerStore, CorrectAnswerStore>();
+        services.AddSingleton<ITokenStore, TokenStore>();
     }
 }

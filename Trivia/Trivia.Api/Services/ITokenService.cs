@@ -2,6 +2,8 @@
 
 public interface ITokenService 
 {
-    Task<string?> GetTokenAsync(string sessionId);
-    Task HandleTokenResponseAsync(string sessionId, string token, int responseCode);
+    Task<string?> GetOrCreateTokenAsync(Guid quizId);
+    Task<bool> ResetTokenAsync(Guid quizId, string token);
+    void ClearToken(Guid quizId);
 }
+    

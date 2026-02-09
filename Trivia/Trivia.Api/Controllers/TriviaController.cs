@@ -7,18 +7,20 @@ namespace Trivia.Api.Controllers;
 
 public class TriviaController : ControllerBase
 {
-    private readonly ITriviaService _triviaService;
+    private readonly ITriviaQuestionService _triviaQuestionService;
+    private readonly ITriviaAnswerService _triviaAnswerService;
 
-    public TriviaController(ITriviaService triviaService)
+    public TriviaController(ITriviaQuestionService triviaQuestionService, ITriviaAnswerService triviaAnswerService)
     {
-        _triviaService = triviaService;
+        _triviaQuestionService = triviaQuestionService;
+        _triviaAnswerService = triviaAnswerService;
     }
 
     [HttpGet]
     [Route("questions")]
-    public async Task<IActionResult> GetQuestions([FromQuery] GetQuestionsQuery query, [Required] string sessionId)
+    public async Task<IActionResult> GetQuestions([FromQuery] GetQuestionsQuery query, [Required] Guid quizId)
     {
-        var getQuestions = await _triviaService.GetQuestionsAsync(query, sessionId);
+        var getQuestions = await _triviaQuestionService.GetQuestionsAsync(query, quizId);
 
         if (!getQuestions.IsSuccess)
         {
@@ -26,5 +28,19 @@ public class TriviaController : ControllerBase
         }
 
         return Ok(getQuestions);
+    }
+
+    [HttpPost]
+    [Route("questions/answers")]
+    public async Task<IActionResult> SubmitAnswers([FromBody] SubmitAnswersQuery query)
+    {
+        var submitAnswers = await _triviaAnswerService.SubmitAnswersAsync(query);
+
+        if (!submitAnswers.IsSuccess)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, submitAnswers);
+        }
+
+        return Ok(submitAnswers);
     }
 }

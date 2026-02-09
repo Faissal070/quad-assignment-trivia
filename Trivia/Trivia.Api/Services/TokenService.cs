@@ -6,18 +6,18 @@ namespace Trivia.Api.Services;
 
 public class TokenService : ITokenService
 {
-    private readonly ITriviaTokenStorage _tokenStorage; 
+    private readonly ITokenStore _tokenStorage; 
     private readonly ITriviaApiClient _triviaApiClient;
 
-    public TokenService(ITriviaApiClient triviaApiClient, ITriviaTokenStorage tokenStorage)
+    public TokenService(ITriviaApiClient triviaApiClient, ITokenStore tokenStorage)
     {
         _tokenStorage = tokenStorage;
         _triviaApiClient = triviaApiClient;
     }
 
-    public async Task<string?> GetTokenAsync(string sessionId)
+    public async Task<string?> GetOrCreateTokenAsync(Guid quizId)
     {
-        var token = _tokenStorage.GetToken(sessionId);
+        var token = _tokenStorage.GetToken(quizId);
 
         if (!string.IsNullOrWhiteSpace(token))
         {
@@ -32,36 +32,24 @@ public class TokenService : ITokenService
             return null;
         }   
 
-        _tokenStorage.SaveToken(sessionId, tokenResponse.Token);
+        _tokenStorage.SaveToken(quizId, tokenResponse.Token);
         return tokenResponse.Token;
     }
 
-    public async Task HandleTokenResponseAsync(string sessionId, string token, int responseCode)
-    {
-        switch (responseCode)
-        {
-            case (int)TriviaApiResponseCodeEnum.TokenNotFound:
-                _tokenStorage.ClearToken(sessionId);
-                break;
-
-            case (int)TriviaApiResponseCodeEnum.TokenEmpty:
-                await ResetTokenAsync(sessionId, token);
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    private async Task ResetTokenAsync(string sessionId, string token)
+    public async Task<bool> ResetTokenAsync(Guid quizId, string token)
     {
         var resetResponseCode = await _triviaApiClient.ResetTokenAsync(token);
 
         if (resetResponseCode.ResponseCode == (int)TriviaApiResponseCodeEnum.Success)
         {
-            return;
+            return true;
         }
 
-        _tokenStorage.ClearToken(sessionId);
+        return false;
+    }
+
+    public void ClearToken(Guid quizId)
+    {
+        _tokenStorage.clearQuizToken(quizId);
     }
 }
