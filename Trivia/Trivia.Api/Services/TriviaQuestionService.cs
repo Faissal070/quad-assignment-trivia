@@ -13,7 +13,7 @@ namespace Trivia.Api.Services;
 public class TriviaQuestionService : ITriviaQuestionService
 {
     private readonly ICorrectAnswerStore _correctAnswerStore;
-    private readonly ITokenService _tokenService;
+    private readonly ITriviaTokenService _tokenService;
     private readonly ITriviaApiClient _triviaApiClient;
     private readonly ILogger<TriviaAnswerService> _logger;
 
@@ -21,7 +21,7 @@ public class TriviaQuestionService : ITriviaQuestionService
 
     public TriviaQuestionService(
         ICorrectAnswerStore correctAnswerStore,
-        ITokenService tokenService,
+        ITriviaTokenService tokenService,
         ITriviaApiClient triviaApiClient,
         ILogger<TriviaAnswerService> logger)
     {
@@ -40,37 +40,32 @@ public class TriviaQuestionService : ITriviaQuestionService
         try
         {
             var questions = await FetchQuestionsWithTokenAsync(query, quizId);
+            var responseStatus = (TriviaApiResponseCodeEnum)questions.ResponseCode;
+            var message = TriviaResponseMessageMapper.ToPublicMessage(questions.ResponseCode);
 
-            var responseMessage = TriviaResponseMessageMapper.ToPublicMessage(questions.ResponseCode);
-
-            if (questions.ResponseCode != (int)TriviaApiResponseCodeEnum.Success
-                && questions.ResponseCode != (int)TriviaApiResponseCodeEnum.NoResults)
+            if (responseStatus != TriviaApiResponseCodeEnum.Success &&
+                responseStatus != TriviaApiResponseCodeEnum.NoResults)
             {
-                return Result<IReadOnlyList<QuestionDto>>.Failure(responseMessage);
+                return Result<IReadOnlyList<QuestionDto>>.Failure(message);
             }
 
-            var mappedAndStoredQuestions = questions.Results.Count == 0
+            var result = questions.Results.Count == 0
                 ? new List<QuestionDto>()
                 : MapAndStoreQuestions(questions.Results, quizId);
 
-            return Result<IReadOnlyList<QuestionDto>>
-                .Success(mappedAndStoredQuestions, responseMessage);
+            return Result<IReadOnlyList<QuestionDto>>.Success(result, message);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Unexpected error while fetching trivia questions");
+            _logger.LogError(ex, "Failed to retrieve or use session token for quiz {QuizId}.", quizId);
 
-            return Result<IReadOnlyList<QuestionDto>>.Failure(
-                "Something went wrong. Please try again.");
+            return Result<IReadOnlyList<QuestionDto>>.Failure("Could not start a session. Please try again later.");
         }
     }
 
     /// <summary>
-    /// Fetches trivia questions using a valid session token and retries once
-    /// if the token is reported invalid by the Trivia API.
+    /// Starts a new session if the token is invalid or expired, removing the current quiz.
     /// </summary>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
     private async Task<TriviaApiQuestionResponse> FetchQuestionsWithTokenAsync(GetQuestionsQuery query, Guid quizId)
     {
         for (var attempt = 0; attempt < MaxTokenRetryAttempts; attempt++)
@@ -83,11 +78,16 @@ public class TriviaQuestionService : ITriviaQuestionService
 
             var questions = await _triviaApiClient.FetchQuestionsAsync(query, token);
 
-            if (questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenNotFound
-                || questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenEmpty)
+            if(questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenEmpty)
             {
-                await HandleInvalidTokenAsync(quizId, token, questions.ResponseCode);
+                await _tokenService.ResetTokenAsync(quizId, token);
                 continue;
+            }
+
+            if (questions.ResponseCode == (int)TriviaApiResponseCodeEnum.TokenNotFound)
+            {
+                _tokenService.ClearToken(quizId);
+                _correctAnswerStore.RemoveQuiz(quizId);
             }
 
             return questions;
@@ -96,24 +96,6 @@ public class TriviaQuestionService : ITriviaQuestionService
         throw new InvalidOperationException("Failed to fetch questions after multiple attempts due to token issues.");
     }
 
-    private async Task HandleInvalidTokenAsync(Guid quizId, string token, int responseCode)
-    {
-        switch (responseCode)
-        {
-            case (int)TriviaApiResponseCodeEnum.TokenNotFound:
-                _tokenService.ClearToken(quizId);
-                _correctAnswerStore.RemoveQuiz(quizId);
-                break;
-
-            case (int)TriviaApiResponseCodeEnum.TokenEmpty:
-                await _tokenService.ResetTokenAsync(quizId, token);
-                break;
-
-            default:
-                _logger.LogWarning("Unhandled token response code {Code} for quiz {QuizId}.", responseCode, quizId);
-                break;
-        }
-    }
 
     private IReadOnlyList<QuestionDto> MapAndStoreQuestions(List<TriviaApiQuestion> apiQuestions, Guid quizId)
     {

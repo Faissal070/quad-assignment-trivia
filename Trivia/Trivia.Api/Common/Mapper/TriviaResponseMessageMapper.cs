@@ -17,6 +17,9 @@ public static class TriviaResponseMessageMapper
             (int)TriviaApiResponseCodeEnum.RateLimit =>
                 "Too many requests. Please try again later.",
 
+            (int)TriviaApiResponseCodeEnum.TokenNotFound =>
+                "Session expired. Please start new session.",
+
             _ =>
                 "Unable to fetch questions, try again later"
         };

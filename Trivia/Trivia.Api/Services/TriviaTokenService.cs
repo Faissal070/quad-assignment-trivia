@@ -4,20 +4,20 @@ using Trivia.Api.Storage;
 
 namespace Trivia.Api.Services;
 
-public class TokenService : ITokenService
+public class TriviaTokenService : ITriviaTokenService
 {
-    private readonly ITokenStore _tokenStorage; 
+    private readonly ITokenStore _tokenStore; 
     private readonly ITriviaApiClient _triviaApiClient;
 
-    public TokenService(ITriviaApiClient triviaApiClient, ITokenStore tokenStorage)
+    public TriviaTokenService(ITriviaApiClient triviaApiClient, ITokenStore tokenStorage)
     {
-        _tokenStorage = tokenStorage;
+        _tokenStore = tokenStorage;
         _triviaApiClient = triviaApiClient;
     }
 
     public async Task<string?> GetOrCreateTokenAsync(Guid quizId)
     {
-        var token = _tokenStorage.GetToken(quizId);
+        var token = _tokenStore.GetToken(quizId);
 
         if (!string.IsNullOrWhiteSpace(token))
         {
@@ -30,9 +30,9 @@ public class TokenService : ITokenService
             string.IsNullOrWhiteSpace(tokenResponse.Token))
         {
             return null;
-        }   
+        }
 
-        _tokenStorage.SaveToken(quizId, tokenResponse.Token);
+        _tokenStore.SaveToken(quizId, tokenResponse.Token);
         return tokenResponse.Token;
     }
 
@@ -50,6 +50,6 @@ public class TokenService : ITokenService
 
     public void ClearToken(Guid quizId)
     {
-        _tokenStorage.clearQuizToken(quizId);
+        _tokenStore.RemoveQuizToken(quizId);
     }
 }

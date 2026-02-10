@@ -1,4 +1,5 @@
-﻿using Trivia.Api.Common.Results;
+﻿using Trivia.Api.Common.Constants;
+using Trivia.Api.Common.Results;
 using Trivia.Api.Models.Dtos;
 using Trivia.Api.Models.Queries;
 using Trivia.Api.Storage;
@@ -26,26 +27,26 @@ public class TriviaAnswerService : ITriviaAnswerService
         {
             if (query.Answers.Count == 0)
             {
-                return Result<IReadOnlyList<AnswerResultDto>>.Failure("No answers submitted.");
+                return Result<IReadOnlyList<AnswerResultDto>>.Failure(SubmitAnswersConstants.NoAnswersSubmitted);
             }
 
             if (!_correctAnswerStore.QuizExists(query.QuizId))
             {
                 _logger.LogError("Quiz with ID {QuizId} not found or expired when submitting answers.", query.QuizId);
 
-                return Result<IReadOnlyList<AnswerResultDto>>.Failure("Quiz not found or expired.");
+                return Result<IReadOnlyList<AnswerResultDto>>.Failure(SubmitAnswersConstants.QuizNotFoundOrExpired);
             }
 
             var answerResults = CheckAnswers(query.Answers, query.QuizId);
 
-            return Result<IReadOnlyList<AnswerResultDto>>.Success(answerResults, "Answer(s) checked");
+            return Result<IReadOnlyList<AnswerResultDto>>.Success(answerResults, SubmitAnswersConstants.AnswerChecked);
         }
         catch(InvalidOperationException ex)
         {
             _logger.LogError(ex, "An error occurred while processing answers for quiz {QuizId}", query.QuizId);
 
             return Result<IReadOnlyList<AnswerResultDto>>
-           .Failure("One or more questions could not be validated.");
+           .Failure(SubmitAnswersConstants.AnswerValidationFailed);
         }
     }
 

@@ -16,7 +16,7 @@ public class TokenStore : ITokenStore
         _tokenByQuizId[guizId] = token;
     }
 
-    public void clearQuizToken(Guid quizId)
+    public void RemoveQuizToken(Guid quizId)
     {
         _tokenByQuizId.Remove(quizId);
     }

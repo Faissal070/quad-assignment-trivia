@@ -1,6 +1,6 @@
 ﻿namespace Trivia.Api.Services;
 
-public interface ITokenService 
+public interface ITriviaTokenService 
 {
     Task<string?> GetOrCreateTokenAsync(Guid quizId);
     Task<bool> ResetTokenAsync(Guid quizId, string token);
