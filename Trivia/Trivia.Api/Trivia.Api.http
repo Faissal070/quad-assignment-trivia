@@ -1,6 +1,6 @@
 @Trivia.Api_HostAddress = http://localhost:5189
 
-GET {{Trivia.Api_HostAddress}}/weatherforecast/
+GET {{Trivia.Api_HostAddress}}/TriviaController/
 Accept: application/json
 
 ###
