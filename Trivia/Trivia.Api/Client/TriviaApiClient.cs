@@ -44,8 +44,6 @@ public class TriviaApiClient : ITriviaApiClient
     private async Task<T> GetAndDeserializeAsync<T>(string url)
     {
         var response = await _httpClient.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-
         var content = await response.Content.ReadAsStringAsync();
 
         return JsonSerializer.Deserialize<T>(content, _jsonOptions)
