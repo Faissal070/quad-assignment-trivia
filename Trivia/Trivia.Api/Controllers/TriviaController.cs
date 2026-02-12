@@ -20,7 +20,7 @@ public class TriviaController : ControllerBase
     [Route("questions")]
     public async Task<IActionResult> GetQuestions([FromQuery] GetQuestionsQuery query, [Required] Guid quizId)
     {
-        var getQuestions = await _triviaQuestionService.GetQuestionsAsync(query, quizId);
+       var getQuestions = await _triviaQuestionService.GetQuestionsAsync(query, quizId);
 
         if (!getQuestions.IsSuccess)
         {
@@ -31,7 +31,7 @@ public class TriviaController : ControllerBase
     }
 
     [HttpPost]
-    [Route("questions/answers")]
+    [Route("answers")]
     public async Task<IActionResult> SubmitAnswers([FromBody] SubmitAnswersQuery query)
     {
         var submitAnswers = await _triviaAnswerService.SubmitAnswersAsync(query);

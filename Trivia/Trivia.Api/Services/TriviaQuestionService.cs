@@ -125,8 +125,22 @@ public class TriviaQuestionService : ITriviaQuestionService
             Category = trivialItem.Category,
             Type = trivialItem.Type,
             Difficulty = trivialItem.Difficulty,
-            Question = WebUtility.HtmlDecode(trivialItem.Question),
+            Question = NormalizeText(trivialItem.Question),
             Choices = allChoices
         };
+    }
+
+    private static string NormalizeText(string value)
+    {
+        var previous = value;
+        var current = WebUtility.HtmlDecode(previous);
+
+        while (current != previous)
+        {
+            previous = current;
+            current = WebUtility.HtmlDecode(previous);
+        }
+
+        return current;
     }
 }
