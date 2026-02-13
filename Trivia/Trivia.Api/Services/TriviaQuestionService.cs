@@ -118,7 +118,12 @@ public class TriviaQuestionService : ITriviaQuestionService
 
     private static QuestionDto CreateTriviaQuestionsDto(TriviaApiQuestion trivialItem, List<string> allChoices)
     {
-        allChoices.Shuffle();
+        var normalizedChoices = allChoices
+        .Select(NormalizeText)
+        .ToList();
+
+        normalizedChoices.Shuffle();
+
         return new QuestionDto
         {
             Id = Guid.NewGuid(),
@@ -126,7 +131,7 @@ public class TriviaQuestionService : ITriviaQuestionService
             Type = trivialItem.Type,
             Difficulty = trivialItem.Difficulty,
             Question = NormalizeText(trivialItem.Question),
-            Choices = allChoices
+            Choices = normalizedChoices
         };
     }
 
