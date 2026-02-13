@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 
 function App() {
     useEffect(() => {
+        console.log('ENV:', import.meta.env)
+        console.log('API:', import.meta.env.VITE_API_BASE_URL)
         startNewQuiz()
     }, [])
 
