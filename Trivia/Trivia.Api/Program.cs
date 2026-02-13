@@ -23,8 +23,8 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                "http://localhost:37862",
-                "https://trivia-web.onrender.com"
+                "http://localhost:5173",
+                "https://trivia-api-oex0.onrender.com"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -34,8 +34,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors("AllowFrontend");
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -43,6 +41,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 

@@ -8,14 +8,12 @@ export default defineConfig({
         plugin()
     ],
     server: {
-        port: 37862,
         proxy: {
             '/api': {
-                target: 'https://localhost:7035',
+                target: 'https://trivia-api-oex0.onrender.com',
                 changeOrigin: true,
-                secure: false,
-                rewrite: (path) => path.replace(/^\/api/, ''),
-            },
-        },
-    }, 
+                rewrite: p => p.replace(/^\/api/, '')
+            }
+        }
+    }
 })

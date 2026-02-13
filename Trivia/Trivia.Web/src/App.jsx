@@ -35,19 +35,21 @@ function App() {
     }
 
     const fetchQuestions = async (quizId) => {
+        if (!API_BASE_URL) return   
+
         try {
             const response = await fetch(
                 `${API_BASE_URL}/questions?amount=10&quizId=${quizId}`
             )
-            const data = await response.json()
 
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to fetch questions')
             }
 
+            const data = await response.json()
             setQuestions(data.data)
         } catch (error) {
-            console.error(error.message)
+            console.error('Fetch failed:', error)
         }
     }
 
