@@ -24,10 +24,12 @@ For this reason, the API only exposes the data required to display the questions
 - React
 - TailWind CSS
 
-# How to use locally:
+# Clone the repository
 ```bash
 https://github.com/Faissal070/quad-assignment-trivia.git
 ```
+
+# How to use locally:
 
 # backend
 To start the backend, run the Trivia.Api project.
