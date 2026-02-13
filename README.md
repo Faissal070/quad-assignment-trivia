@@ -3,7 +3,6 @@ Trivia QuizApp
 
 # Trivia QuizApp
 This is a simple trivia quiz application built using React. It allows users to test their knowledge on various topics by answering multiple-choice questions.
-This project is a simple trivia application consisting of an ASP.NET Web API and a frontend.
 The backend is responsible for providing trivia questions, while the frontend displays these questions as multiple-choice options to the user.
 
 A key design goal of this project was to prevent users from being able to determine the correct answers via browser developer tools or other client-side inspection methods.
