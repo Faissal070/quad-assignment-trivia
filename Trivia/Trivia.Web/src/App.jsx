@@ -35,7 +35,7 @@ function App() {
     }
 
     const fetchQuestions = async (quizId) => {
-        if (!API_BASE_URL) return   
+        if (!API_BASE_URL) return('Vite base url is not set')   
 
         try {
             const response = await fetch(
