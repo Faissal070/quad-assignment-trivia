@@ -17,12 +17,17 @@ For this reason, the API only exposes the data required to display the questions
 - React
 - TailWind CSS
 
-# Clone the repository
+# Live Application
+This application is deployed on **Render (cloud hosting)**.
+
 ```bash
-https://github.com/Faissal070/quad-assignment-trivia.git
+https://trivia-quiz-uxbc.onrender.com/
 ```
 
-# How to use locally:
+# Clone the repository
+https://github.com/Faissal070/quad-assignment-trivia.git
+
+# Locally:
 
 # backend
 To start the backend, run the Trivia.Api project.
