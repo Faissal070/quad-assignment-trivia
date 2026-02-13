@@ -1,7 +1,7 @@
 <Solution>
   <Project Path="Trivia.Api.Tests/Trivia.Api.Tests.csproj" Id="c5250e4b-3c07-46d3-8115-605a25e5678d" />
   <Project Path="Trivia.Api/Trivia.Api.csproj" />
-  <Project Path="Trivia.Web/trivia.Web.esproj" DisplayName="trivia.web">
+  <Project Path="Trivia.Web/trivia.Web.esproj" DisplayName="Trivia.Web">
     <Build />
     <Deploy />
   </Project>
