@@ -1,7 +1,4 @@
 # quad-assignment-trivia
-Trivia QuizApp
-
-# Trivia QuizApp
 This is a simple trivia quiz application built using React. It allows users to test their knowledge on various topics by answering multiple-choice questions.
 The backend is responsible for providing trivia questions, while the frontend displays these questions as multiple-choice options to the user.
 
