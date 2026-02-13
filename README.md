@@ -16,9 +16,6 @@ For this reason, the API only exposes the data required to display the questions
 - Clear separation between frontend and backend
 - Responsive frontend design
 
-# Clone the repository
-
-
 ## Technologies Used
 - ASP.NET Web API
 - React
