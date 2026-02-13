@@ -24,7 +24,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "https://trivia-api-oex0.onrender.com"
+                "https://trivia-quiz-uxbc.onrender.com"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
